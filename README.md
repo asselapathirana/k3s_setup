@@ -28,7 +28,7 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
    ```bash
    ./init.bash <password> <user@host> [pubkey_path]
    ```
-   Run once per host to create `assela`, grant sudo, install your key, and disable password auth.
+   Here you should use the password of the existing user. Run once per host to create `assela`, grant sudo, install your public key, and disable password auth.
 
 2) **Install K3s**
    ```bash
