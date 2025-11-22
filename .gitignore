@@ -1,3 +1,8 @@
 /*/
 node-id
 lmstool2
+node-token
+k3s.yaml
+nodes.txt
+postgres-postgis.yaml
+
