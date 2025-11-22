@@ -1,0 +1,6 @@
+<user>@<ip of the control plane>
+<user>@<ip of a worker>
+<user>@<ip of a worker>
+<user>@<ip of a worker>
+... 
+<user>@<ip of a worker>
