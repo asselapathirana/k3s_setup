@@ -1,4 +1,4 @@
-# ihecluster
+# Small K3S
 
 Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longhorn storage and a Postgres/PostGIS instance on top. The scripts expect password-less SSH once bootstrapping is complete and assume the first node is the control-plane.
 
