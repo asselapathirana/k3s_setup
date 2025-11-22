@@ -96,4 +96,4 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
 
 ## Notes
 - Always `export KUBECONFIG=k3s.yaml` before running the cluster scripts.
-- `node-token` is fetched automatically by `setupk3s.bash`; you normally do not need to edit it.
+- `node-token` is fetched automatically by `setupk3s.bash`; you normally do not need to edit it. But keep this securely - if someone has it, they can control your cluster!
