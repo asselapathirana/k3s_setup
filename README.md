@@ -14,7 +14,7 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
 
 ## Prepare config files (before running scripts)
 - Copy `nodes.txt.example` to `nodes.txt` (or edit the existing file) and fill in your `user@ip` entries with the control-plane first.
-- Copy `postgres-postgis.yaml.example` to `postgres-postgis.yaml` (or edit the existing file) and set `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` to your desired values. Ensure the readiness probe user matches `POSTGRES_USER` if you change it.
+- Edit `postgres-postgis.yaml`  to match your specs. 
 
 ## Files
 - `init.bash`: Bootstrap a node, create user `assela`, set sudo, install your SSH key, and disable password auth.
@@ -65,6 +65,7 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
 5) **Deploy Postgres + PostGIS**
    ```bash
    kubectl create namespace infra
+   # Secret must exist before applying the manifest; not stored in the YAML files.
    kubectl create secret generic postgres-secret \
      -n infra \
      --from-literal=POSTGRES_DB=lmstool \
@@ -80,6 +81,18 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
      psql -U lmstool -d lmstool -c "CREATE EXTENSION IF NOT EXISTS postgis;"
    ```
    Service URL example: `postgresql://lmstool:<password>@postgres.infra.svc.cluster.local:5432/lmstool`
+   To recall the password later (it is stored in the Kubernetes secret), run:
+   ```bash
+   kubectl get secret postgres-secret -n infra -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d; echo
+   ```
+   To print the full URL from the secret values:
+   ```bash
+   NS=infra
+   DB=$(kubectl get secret postgres-secret -n "$NS" -o jsonpath='{.data.POSTGRES_DB}' | base64 -d)
+   USER=$(kubectl get secret postgres-secret -n "$NS" -o jsonpath='{.data.POSTGRES_USER}' | base64 -d)
+   PASS=$(kubectl get secret postgres-secret -n "$NS" -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d)
+   printf 'postgresql://%s:%s@postgres.infra.svc.cluster.local:5432/%s\n' "$USER" "$PASS" "$DB"
+   ```
 
 ## Notes
 - Always `export KUBECONFIG=k3s.yaml` before running the cluster scripts.
