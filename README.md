@@ -12,6 +12,10 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
   assela@192.168.6.43
   ```
 
+## Prepare config files (before running scripts)
+- Copy `nodes.txt.example` to `nodes.txt` (or edit the existing file) and fill in your `user@ip` entries with the control-plane first.
+- Copy `postgres-postgis.yaml.example` to `postgres-postgis.yaml` (or edit the existing file) and set `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` to your desired values. Ensure the readiness probe user matches `POSTGRES_USER` if you change it.
+
 ## Files
 - `init.bash`: Bootstrap a node, create user `assela`, set sudo, install your SSH key, and disable password auth.
 - `setupk3s.bash`: Install K3s on the control-plane and workers from `nodes.txt`; pulls `k3s.yaml` locally with the control-plane IP injected.
