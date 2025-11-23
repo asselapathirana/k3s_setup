@@ -37,6 +37,11 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
    ```
    The script reads `nodes.txt`, installs the control-plane on the first entry, joins the rest as workers, and writes `k3s.yaml`.
 
+### Point kubectl at the K3s cluster
+- Use the generated kubeconfig: `export KUBECONFIG=$PWD/k3s.yaml`
+- Sanity check that you're on the right cluster: `kubectl get nodes`
+- All following scripts use the current kubectl context (namespace changes are explicit in each step).
+
 3) **Label nodes**
    ```bash
    ./namenodes.bash
@@ -93,6 +98,20 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
    PASS=$(kubectl get secret postgres-secret -n "$NS" -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d)
    printf 'postgresql://%s:%s@postgres.infra.svc.cluster.local:5432/%s\n' "$USER" "$PASS" "$DB"
    ```
+
+## Monitoring (kube-prometheus-stack)
+- `monitoring-values.yaml.tpl`: Helm values template for kube-prometheus-stack; sets Grafana/Prometheus ingresses at `grafana.${DOMAIN_NAME}` and `prometheus.${DOMAIN_NAME}`, uses secret `grafana-admin` for Grafana admin creds, and applies modest CPU/memory requests/limits.
+- `deploy-monitoring.bash`: Ensures namespace `monitoring`, ensures the Grafana admin secret exists (creating it if missing), renders `monitoring-values.yaml` via `envsubst`, updates the prometheus-community Helm repo, and installs/upgrades the kube-prometheus-stack release.
+
+### Deploy monitoring stack
+Prereqs: `kubectl`, `helm`, and `envsubst` installed; `kubectl` context pointing at your cluster (`export KUBECONFIG=$PWD/k3s.yaml`).
+```bash
+export DOMAIN_NAME=monitoring.example.com
+export GRAFANA_ADMIN_PASSWORD='YourStrongPassword'   # only required if the secret does not already exist
+# optional: export GRAFANA_ADMIN_USER=admin
+./deploy-monitoring.bash
+```
+The script will print the Grafana and Prometheus URLs; DNS/Ingress/TLS must be in place for access.
 
 ## Notes
 - Always `export KUBECONFIG=k3s.yaml` before running the cluster scripts.

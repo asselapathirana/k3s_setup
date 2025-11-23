@@ -4,5 +4,5 @@ lmstool2
 node-token
 k3s.yaml
 nodes.txt
-postgres-postgis.yaml
+monitoring-values.yaml
 
