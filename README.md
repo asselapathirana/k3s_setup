@@ -99,6 +99,45 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
    printf 'postgresql://%s:%s@postgres.infra.svc.cluster.local:5432/%s\n' "$USER" "$PASS" "$DB"
    ```
 
+### Alternative: CloudNativePG HA cluster
+- Prereqs: install CloudNativePG operator/CRDs, namespace `infra` exists.
+- Create admin/app secrets:
+  ```bash
+  kubectl create secret generic postgres-admin -n infra \
+    --from-literal=username=postgres \
+    --from-literal=password=<admin_password>
+  kubectl create secret generic postgres-app -n infra \
+    --from-literal=username=lmstool \
+    --from-literal=password=<app_password>
+  ```
+- Apply the HA manifest:
+  ```bash
+  kubectl apply -f postgres-cnpg.yaml
+  kubectl get cluster -n infra
+  ```
+- Connection strings (services created by CNPG):
+  - Primary (RW): `postgres-ha-rw.infra.svc.cluster.local:5432`
+  - Replicas (RO): `postgres-ha-r.infra.svc.cluster.local:5432` (and `postgres-ha-ro`)
+  - Example DSN: `postgresql://postgres:<admin_password>@postgres-ha-rw.infra.svc.cluster.local:5432/postgres`
+- Keep the single-pod deployment by continuing to use `postgres-postgis.yaml` and `postgres-secret` (not touched by the CNPG option).
+
+#### Migrating from the single deployment to CNPG (minimal downtime)
+1) Snapshot/restore (simple path):
+   ```bash
+   kubectl exec -n infra deploy/postgres -- pg_dump -U lmstool -d lmstool \
+     | kubectl exec -n infra -i cluster/postgres-ha -- psql -U postgres -d postgres
+   ```
+2) Optional dual-run with logical replication:
+   - On old DB: `CREATE PUBLICATION app_pub FOR ALL TABLES;`
+   - On CNPG primary:  
+     ```sql
+     CREATE SUBSCRIPTION app_sub
+     CONNECTION 'host=postgres.infra.svc.cluster.local port=5432 dbname=lmstool user=lmstool password=<old_password>'
+     PUBLICATION app_pub;
+     ```
+   - Let it catch up, stop writes to old, verify zero lag, point apps to `postgres-ha-rw`, then drop sub/pub when satisfied.
+3) Rollback: if new cluster misbehaves before cutover, keep apps on old service; after cutover you can re-point to the old service and drop the subscription on the CNPG cluster.
+
 ## Monitoring (kube-prometheus-stack)
 - `monitoring-values.yaml.tpl`: Helm values template for kube-prometheus-stack; sets Grafana/Prometheus ingresses at `grafana.${DOMAIN_NAME}` and `prometheus.${DOMAIN_NAME}`, uses secret `grafana-admin` for Grafana admin creds, and applies modest CPU/memory requests/limits.
 - `deploy-monitoring.bash`: Ensures namespace `monitoring`, ensures the Grafana admin secret exists (creating it if missing), renders `monitoring-values.yaml` via `envsubst`, updates the prometheus-community Helm repo, and installs/upgrades the kube-prometheus-stack release.

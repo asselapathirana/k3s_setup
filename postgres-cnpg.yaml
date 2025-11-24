@@ -1,0 +1,60 @@
+# CloudNativePG high-availability Postgres cluster (Postgres 16)
+# Prereqs:
+# - CloudNativePG operator/CRDs installed
+# - Namespace `infra` exists
+# - Secrets `postgres-admin` and `postgres-app` created in `infra`:
+#   kubectl create secret generic postgres-admin -n infra \
+#     --from-literal=username=postgres --from-literal=password=<admin_password>
+#   kubectl create secret generic postgres-app -n infra \
+#     --from-literal=username=lmstool --from-literal=password=<app_password>
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-ha
+  namespace: infra
+spec:
+  instances: 3
+
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+
+  storage:
+    size: 20Gi
+    # Omit to use the default storage class; set explicitly if Longhorn is desired.
+    storageClass: longhorn
+
+  superuserSecret:
+    name: postgres-admin
+
+  bootstrap:
+    initdb:
+      database: lmstool
+      owner: lmstool
+      secret:
+        name: postgres-app
+
+  postgresql:
+    parameters:
+      max_connections: "300"
+      shared_buffers: "256MB"
+
+  primaryUpdateStrategy: unsupervised
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+
+  monitoring:
+    enabled: false
+
+  logLevel: info
+
+  # Uncomment to steer scheduling to workers, etc.
+  # nodeSelector:
+  #   node-role.kubernetes.io/worker: "true"
+  # tolerations:
+  #   - key: "node-role.kubernetes.io/worker"
+  #     operator: "Exists"
