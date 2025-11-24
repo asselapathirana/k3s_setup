@@ -10,7 +10,10 @@ grafana:
     className: nginx
     hosts:
       - grafana.${DOMAIN_NAME}
-    tls: []                       # hook up cert-manager later if needed
+    tls:
+      - secretName: grafana-tls-secret
+        hosts:
+          - grafana.${DOMAIN_NAME}
 
 prometheus:
   prometheusSpec:
@@ -27,7 +30,10 @@ prometheus:
     className: nginx
     hosts:
       - prometheus.${DOMAIN_NAME}
-    tls: []
+    tls:
+      - secretName: prometheus-tls-secret
+        hosts:
+          - prometheus.${DOMAIN_NAME}
 
 alertmanager:
   alertmanagerSpec:
@@ -38,4 +44,3 @@ alertmanager:
       limits:
         memory: "512Mi"
         cpu: "300m"
-
