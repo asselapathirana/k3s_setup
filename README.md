@@ -101,10 +101,18 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
 
 ### Alternative: CloudNativePG HA cluster
 - Prereqs: install CloudNativePG operator/CRDs, namespace `infra` exists.
+- Install CNPG operator/CRDs (example: release 1.24.2). The manifest is large; download, then apply:
+  ```bash
+  curl -LO https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.24/releases/cnpg-1.24.2.yaml
+  kubectl apply -f cnpg-1.24.2.yaml
+  kubectl get crd cluster.postgresql.cnpg.io
+  kubectl -n cnpg-system get pods   # wait for the controller to be Ready
+  ```
+  You can substitute a newer patch version from the CNPG releases page if desired.
 - Create admin/app secrets:
   ```bash
   kubectl create secret generic postgres-admin -n infra \
-    --from-literal=username=postgres \
+    --from-literal=username=postgres \  # superuser is always named postgres
     --from-literal=password=<admin_password>
   kubectl create secret generic postgres-app -n infra \
     --from-literal=username=lmstool \

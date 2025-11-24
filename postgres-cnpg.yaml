@@ -48,7 +48,7 @@ spec:
       memory: "2Gi"
 
   monitoring:
-    enabled: false
+    enablePodMonitor: true
 
   logLevel: info
 
