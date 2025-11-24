@@ -113,6 +113,46 @@ export GRAFANA_ADMIN_PASSWORD='YourStrongPassword'   # only required if the secr
 ```
 The script will print the Grafana and Prometheus URLs; DNS/Ingress/TLS must be in place for access.
 
+### TLS for monitoring (cert-manager + Cloudflare DNS-01)
+1) Install cert-manager (if not already):
+   ```bash
+   kubectl create namespace cert-manager
+   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+   ```
+
+2) Create Cloudflare API token secret (needs zone DNS edit rights):
+   ```bash
+   kubectl create secret generic cloudflare-api-token-secret \
+     -n cert-manager \
+     --from-literal=api-token='<cloudflare-dns-token>'
+   ```
+
+3) Configure ClusterIssuers (staging and prod):
+   - Staging: `clusterissuer-letsencrypt-dns01-staging.yaml`
+   - Prod: `clusterissuer-letsencrypt-dns01-prod.yaml` (uses the ACME prod endpoint). Apply both so you can test with staging first:
+     ```bash
+     kubectl apply -f clusterissuer-letsencrypt-dns01-staging.yaml
+     kubectl apply -f clusterissuer-letsencrypt-dns01-prod.yaml
+     ```
+
+4) Request certs for Grafana/Prometheus:
+   ```bash
+   kubectl apply -f monitoring-certs.yaml
+   ```
+   This creates `grafana-tls-secret` and `prometheus-tls-secret` in namespace `monitoring` once DNS challenges pass.
+
+5) Verify:
+   ```bash
+   kubectl get certificate -n monitoring
+   kubectl describe certificate grafana-tls-cert -n monitoring
+   kubectl get secret grafana-tls-secret -n monitoring -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -issuer -subject
+   ```
+   Ensure DNS A/AAAA/CNAME records for `grafana.<domain>` and `prometheus.<domain>` point to your ingress controller.
+
+6) Check via browser once certs are Ready:
+   - Browse to `https://grafana.<domain>` and `https://prometheus.<domain>`.
+   - Confirm the certificate is issued by Let’s Encrypt and the URL shows a valid lock (no warnings). If you see a browser warning, the cert likely came from staging or DNS is still propagating.
+
 ## Notes
 - Always `export KUBECONFIG=k3s.yaml` before running the cluster scripts.
 - `node-token` is fetched automatically by `setupk3s.bash`; you normally do not need to edit it. But keep this securely - if someone has it, they can control your cluster!
