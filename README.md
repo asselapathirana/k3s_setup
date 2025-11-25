@@ -132,8 +132,11 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
 #### Migrating from the single deployment to CNPG (minimal downtime)
 1) Snapshot/restore (simple path):
    ```bash
-   kubectl exec -n infra deploy/postgres -- pg_dump -U lmstool -d lmstool \
-     | kubectl exec -n infra -i cluster/postgres-ha -- psql -U postgres -d postgres
+   SRC=$(kubectl -n infra get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+   DST=$(kubectl -n infra get pod -l cnpg.io/cluster=postgres-ha,role=primary -o jsonpath='{.items[0].metadata.name}')
+
+   kubectl -n infra exec "$SRC" -- pg_dump -U lmstool -d lmstool \
+     | kubectl -n infra exec -i "$DST" -- psql -U postgres -d postgres
    ```
 2) Optional dual-run with logical replication:
    - On old DB: `CREATE PUBLICATION app_pub FOR ALL TABLES;`

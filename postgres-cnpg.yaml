@@ -15,10 +15,10 @@ metadata:
 spec:
   instances: 3
 
-  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  imageName: ghcr.io/cloudnative-pg/postgis:16
 
   storage:
-    size: 20Gi
+    size: 10Gi
     # Omit to use the default storage class; set explicitly if Longhorn is desired.
     storageClass: longhorn
 
@@ -31,6 +31,9 @@ spec:
       owner: lmstool
       secret:
         name: postgres-app
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS postgis;
+        - CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
   postgresql:
     parameters:
