@@ -75,6 +75,7 @@ helm upgrade --install "${RELEASE_NAME}" prometheus-community/kube-prometheus-st
 
 echo ">>> Done."
 echo "Grafana will be available at:     https://grafana.${DOMAIN_NAME}   (once DNS/Ingress/certs are set)"
-echo "Prometheus will be available at:  https://prometheus.${DOMAIN_NAME}"
+echo "Prometheus ingress is disabled; access via port-forward (kubectl -n ${NAMESPACE} port-forward svc/${RELEASE_NAME}-prometheus 9090:9090)"
+echo "Then open http://localhost:9090 in your browser while the port-forward runs."
+echo "Longhorn UI (if installed):       kubectl -n longhorn-system port-forward svc/longhorn-frontend 8080:80  # then open http://localhost:8080"
 echo "Grafana login: user='${GRAFANA_ADMIN_USER}', password set via GRAFANA_ADMIN_PASSWORD (or existing secret)."
-

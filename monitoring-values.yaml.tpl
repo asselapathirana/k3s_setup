@@ -26,14 +26,7 @@ prometheus:
         memory: "2Gi"
         cpu: "1"
   ingress:
-    enabled: true
-    className: nginx
-    hosts:
-      - prometheus.${DOMAIN_NAME}
-    tls:
-      - secretName: prometheus-tls-secret
-        hosts:
-          - prometheus.${DOMAIN_NAME}
+    enabled: false
 
 alertmanager:
   alertmanagerSpec:

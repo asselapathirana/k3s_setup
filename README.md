@@ -150,18 +150,18 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
 3) Rollback: if new cluster misbehaves before cutover, keep apps on old service; after cutover you can re-point to the old service and drop the subscription on the CNPG cluster.
 
 ## Monitoring (kube-prometheus-stack)
-- `monitoring-values.yaml.tpl`: Helm values template for kube-prometheus-stack; sets Grafana/Prometheus ingresses at `grafana.${DOMAIN_NAME}` and `prometheus.${DOMAIN_NAME}`, uses secret `grafana-admin` for Grafana admin creds, and applies modest CPU/memory requests/limits.
+- `monitoring-values.yaml.tpl`: Helm values template for kube-prometheus-stack; enables Grafana ingress at `grafana.${DOMAIN_NAME}` (TLS secret `grafana-tls-secret`), leaves Prometheus ingress disabled (reach it via kubectl proxy/port-forward), uses secret `grafana-admin` for Grafana admin creds, and applies modest CPU/memory requests/limits.
 - `deploy-monitoring.bash`: Ensures namespace `monitoring`, ensures the Grafana admin secret exists (creating it if missing), renders `monitoring-values.yaml` via `envsubst`, updates the prometheus-community Helm repo, and installs/upgrades the kube-prometheus-stack release.
 
 ### Deploy monitoring stack
 Prereqs: `kubectl`, `helm`, and `envsubst` installed; `kubectl` context pointing at your cluster (`export KUBECONFIG=$PWD/k3s.yaml`).
 ```bash
-export DOMAIN_NAME=monitoring.example.com
+export DOMAIN_NAME=monitoring.example.com    # used for Grafana ingress
 export GRAFANA_ADMIN_PASSWORD='YourStrongPassword'   # only required if the secret does not already exist
 # optional: export GRAFANA_ADMIN_USER=admin
 ./deploy-monitoring.bash
 ```
-The script will print the Grafana and Prometheus URLs; DNS/Ingress/TLS must be in place for access.
+The script will print the Grafana URL and port-forward hints for Prometheus; only Grafana needs DNS/Ingress/TLS.
 
 ### TLS for monitoring (cert-manager + Cloudflare DNS-01)
 1) Install cert-manager (if not already):
@@ -185,11 +185,11 @@ The script will print the Grafana and Prometheus URLs; DNS/Ingress/TLS must be i
      kubectl apply -f clusterissuer-letsencrypt-dns01-prod.yaml
      ```
 
-4) Request certs for Grafana/Prometheus:
+4) Request cert for Grafana (Prometheus stays cluster-local and is reached via proxy/port-forward):
    ```bash
    kubectl apply -f monitoring-certs.yaml
    ```
-   This creates `grafana-tls-secret` and `prometheus-tls-secret` in namespace `monitoring` once DNS challenges pass.
+   This creates `grafana-tls-secret` in namespace `monitoring` once DNS challenges pass.
 
 5) Verify:
    ```bash
@@ -197,11 +197,12 @@ The script will print the Grafana and Prometheus URLs; DNS/Ingress/TLS must be i
    kubectl describe certificate grafana-tls-cert -n monitoring
    kubectl get secret grafana-tls-secret -n monitoring -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -issuer -subject
    ```
-   Ensure DNS A/AAAA/CNAME records for `grafana.<domain>` and `prometheus.<domain>` point to your ingress controller.
+   Ensure DNS A/AAAA/CNAME records for `grafana.<domain>` point to your ingress controller.
 
-6) Check via browser once certs are Ready:
-   - Browse to `https://grafana.<domain>` and `https://prometheus.<domain>`.
-   - Confirm the certificate is issued by Let’s Encrypt and the URL shows a valid lock (no warnings). If you see a browser warning, the cert likely came from staging or DNS is still propagating.
+6) Access the UIs:
+   - Grafana: browse to `https://grafana.<domain>` once the certificate is Ready (should show a valid Let’s Encrypt lock).
+   - Prometheus (no ingress): `kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090` (or run `kubectl proxy`) then open `http://localhost:9090`.
+   - Longhorn GUI: `kubectl -n longhorn-system port-forward svc/longhorn-frontend 8080:80` (or via `kubectl proxy` at `/api/v1/namespaces/longhorn-system/services/http:longhorn-frontend:80/proxy/`) then open `http://localhost:8080`.
 
 ## Notes
 - Always `export KUBECONFIG=k3s.yaml` before running the cluster scripts.
