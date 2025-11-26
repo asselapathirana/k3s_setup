@@ -123,6 +123,18 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
   kubectl apply -f postgres-cnpg.yaml
   kubectl get cluster -n infra
   ```
+- Use the bundled PostGIS + pgvector image (`pgimage/`) with CNPG instead of the default:
+  ```bash
+  cd pgimage
+  REGISTRY_USER=<your_dockerhub_user> IMAGE_REPO=postgres TAG=16-3.4-pgvector \
+    ./build-pgvector-postgis-image.sh
+  ```
+  Set `imageName: docker.io/assela/postgres:16-3.4-pgvector` in `postgres-cnpg.yaml` (the `pg16-` tag will error), and add `imagePullSecrets` if using a private registry. To roll an already-running cluster:
+  ```bash
+  kubectl -n infra patch cluster postgres-ha --type merge \
+    -p '{"spec":{"imageName":"docker.io/assela/postgres:16-3.4-pgvector"}}'
+  kubectl -n infra get pods -w   # watch the restart with the new image
+  ```
 - Connection strings (services created by CNPG):
   - Primary (RW): `postgres-ha-rw.infra.svc.cluster.local:5432`
   - Replicas (RO): `postgres-ha-r.infra.svc.cluster.local:5432` (and `postgres-ha-ro`)

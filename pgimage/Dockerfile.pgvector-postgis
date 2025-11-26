@@ -1,0 +1,28 @@
+# Postgres + PostGIS + pgvector
+# Default base: Postgres 16 with PostGIS 3.4; installs pgvector extension.
+ARG BASE_IMAGE=postgis/postgis:16-3.4
+FROM ${BASE_IMAGE}
+
+# CloudNativePG runs the container as UID/GID 26; ensure that user/group exist so
+# peer authentication can resolve the local postgres user.
+RUN set -eux; \
+    if ! getent group 26 >/dev/null; then \
+      if getent group postgres >/dev/null; then \
+        groupmod -g 26 postgres; \
+      else \
+        groupadd -g 26 postgres; \
+      fi; \
+    fi; \
+    if ! getent passwd 26 >/dev/null; then \
+      if getent passwd postgres >/dev/null; then \
+        usermod -u 26 -g 26 -d /var/lib/postgresql -s /bin/bash postgres; \
+      else \
+        useradd -u 26 -g 26 -d /var/lib/postgresql -s /bin/bash postgres; \
+      fi; \
+    fi; \
+    mkdir -p /var/lib/postgresql /var/run/postgresql; \
+    chown -R 26:26 /var/lib/postgresql /var/run/postgresql
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-16-pgvector \
+ && rm -rf /var/lib/apt/lists/*
