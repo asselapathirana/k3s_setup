@@ -109,10 +109,10 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
   kubectl -n cnpg-system get pods   # wait for the controller to be Ready
   ```
   You can substitute a newer patch version from the CNPG releases page if desired.
-- Create admin/app secrets:
+- Create admin/app secrets:   # superuser is always named postgres
   ```bash
   kubectl create secret generic postgres-admin -n infra \
-    --from-literal=username=postgres \  # superuser is always named postgres
+    --from-literal=username=postgres \
     --from-literal=password=<admin_password> \
     --label cnpg.io/userType=superuser \
     --label cnpg.io/reload="true"
