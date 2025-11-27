@@ -113,10 +113,14 @@ Bootstrap a small K3s cluster on freshly provisioned VPS nodes, then layer Longh
   ```bash
   kubectl create secret generic postgres-admin -n infra \
     --from-literal=username=postgres \  # superuser is always named postgres
-    --from-literal=password=<admin_password>
+    --from-literal=password=<admin_password> \
+    --label cnpg.io/userType=superuser \
+    --label cnpg.io/reload="true"
   kubectl create secret generic postgres-app -n infra \
     --from-literal=username=lmstool \
-    --from-literal=password=<app_password>
+    --from-literal=password=<app_password> \
+    --label cnpg.io/userType=app \
+    --label cnpg.io/reload="true"
   ```
 - Apply the HA manifest:
   ```bash
